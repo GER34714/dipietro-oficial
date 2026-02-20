@@ -135,32 +135,35 @@
     text-shadow: 0 10px 24px rgba(0,0,0,.28);
   }
 
+  /* HAMBURGUESA MAS LLAMATIVA */
   .burgerOnBanner{
     position:absolute;
     top: 12px;
     right: 12px;
     z-index: 70;
-    width:46px; height:46px;
-    border-radius:16px;
-    border:1px solid rgba(255,255,255,.26);
-    background: rgba(255,255,255,.84);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 18px 60px rgba(31,41,55,.22);
+    width:52px; height:52px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.34);
+    background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,243,227,.72));
+    backdrop-filter: blur(12px);
+    box-shadow: 0 22px 70px rgba(17,24,39,.30);
     cursor:pointer;
-    padding:12px 11px;
+    padding:13px 12px;
     display:none;
+    transition: transform .12s ease, box-shadow .12s ease;
   }
   .burgerOnBanner span{
     display:block;
     height:2px;
-    background: rgba(31,41,55,.86);
+    background: rgba(31,41,55,.88);
     border-radius:99px;
     margin:6px 0;
   }
+  .burgerOnBanner:hover{ box-shadow: 0 26px 80px rgba(17,24,39,.34); }
   .burgerOnBanner:active{transform: scale(.99)}
   .burgerOnBanner.isOpen{
-    background: rgba(255,255,255,.92);
-    border-color: rgba(255,255,255,.40);
+    background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(236,233,255,.78));
+    border-color: rgba(255,255,255,.44);
   }
 
   /* overlay mobile menu - NO se recorta por el banner */
@@ -279,7 +282,8 @@
   .muted{color:var(--muted); font-size:13px; margin:0}
 
   .leadLine{
-    margin: 10px 0 0;
+    margin: 10px auto 0;
+    width:min(1120px, 92vw);
     border:1px solid rgba(31,41,55,.10);
     border-radius: 18px;
     background: rgba(255,255,255,.78);
@@ -364,6 +368,24 @@
     transition: transform .12s ease;
   }
   .card:active{transform: scale(.99)}
+
+  .card__media{position:relative}
+  .promoTag{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:2;
+    padding:7px 10px;
+    border-radius: 999px;
+    font-weight:1200;
+    font-size:12px;
+    letter-spacing:.3px;
+    border:1px solid rgba(255,255,255,.40);
+    background: linear-gradient(135deg, rgba(249,115,22,.95), rgba(139,92,246,.60));
+    color: rgba(17,24,39,.92);
+    box-shadow: 0 16px 50px rgba(17,24,39,.26);
+  }
+
   .card__img{width:100%; aspect-ratio: 4/3; object-fit: cover; display:block}
   .card__body{padding:10px 10px 12px}
   .card__row{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
@@ -655,7 +677,6 @@
     </div>
   </section>
 
-  <!-- overlay menu -->
   <div class="menuOverlay" id="menuOverlay" aria-hidden="true">
     <button class="menuOverlay__bg" id="menuOverlayBg" type="button" aria-label="Cerrar"></button>
     <div class="mobileMenu" id="mobileMenu" aria-hidden="true">
@@ -691,14 +712,12 @@
     </div>
   </header>
 
-  <main class="wrap">
-    <div class="leadLine">
-      <div>
-        <div class="leadLine__t">Equipamiento comercial para tu negocio, con compra simple.</div>
-        <div class="leadLine__d">Elegis productos, armas el pedido y finalizas por WhatsApp. Pago al recibir.</div>
-      </div>
+  <div class="leadLine">
+    <div>
+      <div class="leadLine__t">Equipamiento comercial para tu negocio, con compra simple.</div>
+      <div class="leadLine__d">Elegis productos, armas el pedido y finalizas por WhatsApp. Pago al recibir.</div>
     </div>
-  </main>
+  </div>
 
   <main>
     <section id="quienes" class="wrap section section--soft">
@@ -752,7 +771,7 @@
 
             <div class="point">
               <div class="point__head">
-                <img class="point__icon" src="https://iili.io/q3bm7hF.jpg" alt="" loading="lazy" />
+                <img class="point__icon" src="https://iili.io/q3mGTc7.jpg" alt="" loading="lazy" />
                 <p class="point__t">Cita previa</p>
               </div>
               <p class="point__d">Coordinamos la visita segun el horario de atencion.</p>
@@ -1123,7 +1142,6 @@ function closeDrawer(){
   cartDrawer.setAttribute("aria-hidden","true");
 }
 
-/* MENU overlay (sin recorte) */
 function openMobileMenu(){
   menuOverlay.classList.add("isOpen");
   menuOverlay.setAttribute("aria-hidden","false");
@@ -1312,9 +1330,13 @@ function renderGrid(list){
   hideState();
   const slice = list.slice(0, visibleCount);
   gridEl.innerHTML = slice.map((p)=>{
+    const hasPromo = !!p.promo_active && Number(p.promo_price||0) > 0;
     return `
       <article class="card" data-open="${p.id}">
-        <img class="card__img" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" loading="lazy" />
+        <div class="card__media">
+          ${hasPromo ? `<div class="promoTag">PROMO!</div>` : ``}
+          <img class="card__img" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" loading="lazy" />
+        </div>
         <div class="card__body">
           <div class="card__row">
             <h3 class="card__name">${escapeHtml(p.name)}</h3>

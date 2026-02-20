@@ -56,7 +56,6 @@
 
   .wrap{width:min(1120px, 92vw); margin:0 auto}
 
-  /* Banner */
   .banner{
     border-bottom: 1px solid var(--line);
     background: rgba(251,247,240,.65);
@@ -135,7 +134,6 @@
     text-shadow: 0 10px 24px rgba(0,0,0,.28);
   }
 
-  /* Burger (mejorado) sobre banner */
   .burgerOnBanner{
     position:absolute;
     top: 12px;
@@ -164,7 +162,6 @@
     border-color: rgba(255,255,255,.40);
   }
 
-  /* Mobile menu cristal sobre el banner */
   .mobileMenu{
     display:none;
     position:absolute;
@@ -229,7 +226,6 @@
     cursor:pointer;
   }
 
-  /* Topbar desktop */
   .topbar{
     position:sticky; top:0; z-index:50;
     backdrop-filter: blur(10px);
@@ -458,7 +454,7 @@
     width:22px;
     height:22px;
     display:block;
-    object-fit: contain; /* sin recorte */
+    object-fit: contain;
     border-radius: 6px;
   }
   .point__t{font-weight:1100; margin:0; line-height:1.2}
@@ -488,6 +484,20 @@
   .drawer__footer{border-top:1px solid rgba(31,41,55,.08); padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px}
   .totalRow{display:flex; align-items:center; justify-content:space-between}
   .hint{color:var(--muted); font-size:12px; line-height:1.35}
+
+  .promoLine{
+    margin-top:6px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 10px;
+    border-radius: 14px;
+    border:1px solid rgba(249,115,22,.22);
+    background: rgba(249,115,22,.10);
+  }
+  .promoLine__t{font-weight:1100; font-size:12px}
+  .promoLine__p{font-weight:1100; font-size:12px; white-space:nowrap}
 
   .modal{position:fixed; inset:0; display:none; z-index:90}
   .modal.isOpen{display:block}
@@ -610,7 +620,6 @@
           <span></span><span></span><span></span>
         </button>
 
-        <!-- Menu mobile cristal sobre el banner -->
         <div class="mobileMenu" id="mobileMenu" aria-hidden="true">
           <div class="mobileMenu__head">
             <div>
@@ -706,7 +715,7 @@
 
             <div class="point">
               <div class="point__head">
-                <img class="point__icon" src="https://iili.io/q3mGTc7.jpg" alt="" loading="lazy" />
+                <img class="point__icon" src="https://iili.io/q3bm7hF.jpg" alt="" loading="lazy" />
                 <p class="point__t">Cita previa</p>
               </div>
               <p class="point__d">Coordinamos la visita segun el horario de atencion.</p>
@@ -877,8 +886,17 @@
           <div class="modal__price" id="modalPrice">$0</div>
           <div class="modal__desc" id="modalDesc"></div>
 
+          <div id="promoBox" style="display:none" class="promoLine">
+            <div>
+              <div class="promoLine__t" id="promoText">Promocion</div>
+              <div class="muted" style="font-size:12px" id="promoHint"></div>
+            </div>
+            <div class="promoLine__p" id="promoValue">+$0</div>
+          </div>
+
           <div class="modal__actions">
             <button class="btn btn--primary" id="modalAdd" type="button">Agregar al carrito</button>
+            <button class="btn btn--ghost" id="modalPromoBtn" type="button" style="display:none">Agregar promocion</button>
             <button class="btn btn--ghost" id="modalGoCart" type="button">Ver carrito</button>
           </div>
 
@@ -953,11 +971,17 @@ const modalImg = document.getElementById("modalImg");
 const modalPrice = document.getElementById("modalPrice");
 const modalDesc = document.getElementById("modalDesc");
 const modalAdd = document.getElementById("modalAdd");
+const modalPromoBtn = document.getElementById("modalPromoBtn");
 const modalGoCart = document.getElementById("modalGoCart");
 const zoomViewport = document.getElementById("zoomViewport");
 const zoomIn = document.getElementById("zoomIn");
 const zoomOut = document.getElementById("zoomOut");
 const zoomReset = document.getElementById("zoomReset");
+
+const promoBox = document.getElementById("promoBox");
+const promoText = document.getElementById("promoText");
+const promoHint = document.getElementById("promoHint");
+const promoValue = document.getElementById("promoValue");
 
 let allProducts = [];
 let offers = [];
@@ -996,17 +1020,35 @@ function isOfferCategory(cat){ return norm(cat) === norm(OFFERS_CATEGORY); }
 
 function loadCart(){
   try{
-    const raw = localStorage.getItem("cart_v3");
+    const raw = localStorage.getItem("cart_v4");
     return raw ? JSON.parse(raw) : {};
   }catch{ return {}; }
 }
-function saveCart(){ try{ localStorage.setItem("cart_v3", JSON.stringify(cart)); }catch{} }
+function saveCart(){ try{ localStorage.setItem("cart_v4", JSON.stringify(cart)); }catch{} }
 function cartCount(){ return Object.values(cart).reduce((a,it)=>a+(it.qty||0),0); }
-function cartTotal(){ return Object.values(cart).reduce((a,it)=>a + (Number(it.product.price)*(it.qty||0)),0); }
+
+function itemPromoTotal(it){
+  const p = it.product;
+  const promoOn = !!it.promo;
+  const promoPrice = Number(p.promo_price||0);
+  if(!promoOn || !p.promo_active || promoPrice<=0) return 0;
+  return promoPrice * (it.qty||0);
+}
+
+function cartTotal(){
+  return Object.values(cart).reduce((a,it)=>{
+    const p = it.product;
+    const base = Number(p.price) * (it.qty||0);
+    const promoT = itemPromoTotal(it);
+    return a + base + promoT;
+  },0);
+}
+
 function setQty(product, qty){
   const id = product.id;
+  const prevPromo = cart[id]?.promo || false;
   if(qty<=0) delete cart[id];
-  else cart[id] = { product, qty };
+  else cart[id] = { product, qty, promo: prevPromo };
   saveCart();
   renderCartBadge();
 }
@@ -1014,6 +1056,19 @@ function addToCart(product){
   const cur = cart[product.id]?.qty || 0;
   setQty(product, cur + 1);
 }
+function togglePromo(product, on){
+  const id = product.id;
+  const item = cart[id];
+  if(!item){
+    cart[id] = { product, qty: 1, promo: !!on };
+  }else{
+    item.promo = !!on;
+    item.product = product;
+  }
+  saveCart();
+  renderCartBadge();
+}
+
 function renderCartBadge(){
   const v = String(cartCount());
   cartCountEl.textContent = v;
@@ -1062,23 +1117,34 @@ function buildWhatsAppUrl(text){
   const msg = encodeURIComponent(text);
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
 }
+
 function buildOrderMessage(){
   const items = Object.values(cart);
   const lines = [];
   lines.push(`Hola! Vengo del catalogo de ${BRAND_NAME} (${BRAND_SUBTITLE}), mi pedido es:`);
   lines.push("");
+
   items.forEach((it, idx)=>{
     const p = it.product;
     const qty = it.qty || 0;
-    const subtotal = Number(p.price)*qty;
-    lines.push(`${idx+1}) ${p.name} x${qty} = ${money(subtotal)}`);
+
+    const baseSubtotal = Number(p.price)*qty;
+    lines.push(`${idx+1}) ${p.name} x${qty} = ${money(baseSubtotal)}`);
+
+    const promoPrice = Number(p.promo_price||0);
+    const promoLabel = String(p.promo_label||"Promocion").trim() || "Promocion";
+    if(it.promo && p.promo_active && promoPrice>0){
+      lines.push(`   + ${promoLabel} x${qty} = ${money(promoPrice*qty)}`);
+    }
   });
+
   lines.push("");
   lines.push(`Total: ${money(cartTotal())}`);
   lines.push("Pago: transferencia o efectivo (se abona al recibir).");
   lines.push("Visita con cita previa.");
   return lines.join("\n");
 }
+
 function goWhatsApp(){
   const items = Object.values(cart);
   if(!items.length) return;
@@ -1096,16 +1162,36 @@ function renderCart(){
     cartTotalEl.textContent = money(0);
     return;
   }
+
   cartItemsEl.innerHTML = items.map((it)=>{
     const p = it.product;
     const qty = it.qty || 0;
-    const subtotal = Number(p.price)*qty;
+
+    const baseSubtotal = Number(p.price)*qty;
+    const promoPrice = Number(p.promo_price||0);
+    const promoLabel = String(p.promo_label||"Promocion").trim() || "Promocion";
+    const promoAllowed = !!p.promo_active && promoPrice>0;
+    const promoOn = !!it.promo && promoAllowed;
+
+    const promoSub = promoOn ? promoPrice*qty : 0;
+    const finalSub = baseSubtotal + promoSub;
+
+    const promoBlock = promoAllowed ? `
+      <div class="cartItem__muted">
+        ${promoOn ? `Promocion: ${escapeHtml(promoLabel)} (+${money(promoPrice)} c/u)` : `Promocion disponible: ${escapeHtml(promoLabel)} (+${money(promoPrice)} c/u)`}
+      </div>
+      <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn btn--ghost" data-promo-toggle="${p.id}" type="button">${promoOn ? "Quitar promocion" : "Agregar promocion"}</button>
+      </div>
+    ` : "";
+
     return `
       <div class="cartItem">
         <div>
           <div class="cartItem__name">${escapeHtml(p.name)}</div>
           <div class="cartItem__muted">${escapeHtml(p.category||"")}</div>
-          <div class="cartItem__muted">Unidad: ${money(p.price)} | Subtotal: ${money(subtotal)}</div>
+          <div class="cartItem__muted">Unidad: ${money(p.price)} | Subtotal: ${money(finalSub)}</div>
+          ${promoBlock}
         </div>
         <div class="qtyRow">
           <button class="qtyBtn" data-action="dec" data-id="${p.id}">-</button>
@@ -1115,7 +1201,9 @@ function renderCart(){
       </div>
     `;
   }).join("");
+
   cartTotalEl.textContent = money(cartTotal());
+
   cartItemsEl.querySelectorAll(".qtyBtn").forEach((btn)=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-id");
@@ -1124,6 +1212,17 @@ function renderCart(){
       if(!item) return;
       const next = action === "inc" ? item.qty + 1 : item.qty - 1;
       setQty(item.product, next);
+      renderCart();
+    });
+  });
+
+  cartItemsEl.querySelectorAll("[data-promo-toggle]").forEach((btn)=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-promo-toggle");
+      const item = cart[id];
+      if(!item) return;
+      const next = !item.promo;
+      togglePromo(item.product, next);
       renderCart();
     });
   });
@@ -1265,6 +1364,7 @@ function clampPan(){
   panX = Math.max(-limitX, Math.min(limitX, panX));
   panY = Math.max(-limitY, Math.min(limitY, panY));
 }
+
 function openModal(p){
   modalProduct = p;
   modalTitle.textContent = p.name;
@@ -1273,9 +1373,27 @@ function openModal(p){
   modalPrice.textContent = money(p.price);
   modalDesc.textContent = p.description || "";
   resetZoom();
+
+  const promoAllowed = !!p.promo_active && Number(p.promo_price||0) > 0;
+  if(promoAllowed){
+    promoBox.style.display = "flex";
+    const label = String(p.promo_label||"Promocion").trim() || "Promocion";
+    promoText.textContent = label;
+    promoHint.textContent = "Se suma al total por unidad.";
+    promoValue.textContent = `+${money(p.promo_price)}`;
+    modalPromoBtn.style.display = "";
+    const inCart = !!cart[p.id];
+    const selected = inCart ? !!cart[p.id].promo : false;
+    modalPromoBtn.textContent = selected ? "Quitar promocion" : "Agregar promocion";
+  }else{
+    promoBox.style.display = "none";
+    modalPromoBtn.style.display = "none";
+  }
+
   modal.classList.add("isOpen");
   modal.setAttribute("aria-hidden","false");
 }
+
 function closeModal(){
   modal.classList.remove("isOpen");
   modal.setAttribute("aria-hidden","true");
@@ -1285,6 +1403,17 @@ modalBackdrop.addEventListener("click", closeModal);
 modalClose.addEventListener("click", closeModal);
 
 modalAdd.addEventListener("click", ()=>{ if(modalProduct) addToCart(modalProduct); });
+
+modalPromoBtn.addEventListener("click", ()=>{
+  if(!modalProduct) return;
+  const p = modalProduct;
+  const promoAllowed = !!p.promo_active && Number(p.promo_price||0) > 0;
+  if(!promoAllowed) return;
+  const cur = cart[p.id]?.promo || false;
+  togglePromo(p, !cur);
+  modalPromoBtn.textContent = (!cur) ? "Quitar promocion" : "Agregar promocion";
+});
+
 modalGoCart.addEventListener("click", ()=>{
   closeModal();
   renderCart();
@@ -1328,7 +1457,7 @@ async function loadProducts(){
   showState("Cargando productos...");
   const { data, error } = await sb
     .from("products")
-    .select("id,name,description,price,category,image_url,active,created_at")
+    .select("id,name,description,price,category,image_url,active,created_at,promo_active,promo_label,promo_price")
     .eq("active", true)
     .order("created_at", { ascending: false });
 

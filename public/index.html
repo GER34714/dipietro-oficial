@@ -64,6 +64,7 @@
     width:min(1120px, 92vw);
     margin:0 auto;
     padding:14px 0 10px;
+    position:relative;
   }
   .bannerCard{
     border:1px solid rgba(31,41,55,.10);
@@ -138,7 +139,7 @@
     position:absolute;
     top: 12px;
     right: 12px;
-    z-index: 5;
+    z-index: 70;
     width:46px; height:46px;
     border-radius:16px;
     border:1px solid rgba(255,255,255,.26);
@@ -162,13 +163,21 @@
     border-color: rgba(255,255,255,.40);
   }
 
+  /* overlay mobile menu - NO se recorta por el banner */
+  .menuOverlay{position:fixed; inset:0; display:none; z-index:80}
+  .menuOverlay.isOpen{display:block}
+  .menuOverlay__bg{
+    position:absolute; inset:0;
+    border:0;
+    background: rgba(17,24,39,.30);
+    backdrop-filter: blur(2px);
+    cursor:pointer;
+  }
   .mobileMenu{
-    display:none;
     position:absolute;
-    top: 64px;
-    right: 12px;
-    left: 12px;
-    z-index: 5;
+    left: 14px;
+    right: 14px;
+    top: 18px;
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,.28);
     background: rgba(255,255,255,.74);
@@ -176,7 +185,6 @@
     box-shadow: 0 22px 80px rgba(17,24,39,.35);
     overflow:hidden;
   }
-  .mobileMenu.isOpen{display:block}
   .mobileMenu__head{
     padding: 12px 14px;
     border-bottom: 1px solid rgba(31,41,55,.10);
@@ -205,7 +213,6 @@
     box-shadow: 0 10px 30px rgba(31,41,55,.12);
     font-weight:1100;
   }
-
   .mobileMenu__link{
     display:flex;
     align-items:center;
@@ -270,6 +277,21 @@
   .section__head{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:10px 0 12px}
   .section__head h2{margin:0; font-size:20px}
   .muted{color:var(--muted); font-size:13px; margin:0}
+
+  .leadLine{
+    margin: 10px 0 0;
+    border:1px solid rgba(31,41,55,.10);
+    border-radius: 18px;
+    background: rgba(255,255,255,.78);
+    box-shadow: var(--shadow);
+    padding: 12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .leadLine__t{font-weight:1100}
+  .leadLine__d{color:var(--muted); font-size:13px; margin-top:4px; line-height:1.35}
 
   .toolbar{display:grid; grid-template-columns: 240px 1fr 200px; gap:12px; margin-bottom:12px}
   .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
@@ -614,28 +636,11 @@
 <body>
 
   <section class="banner" aria-label="Banner">
-    <div class="banner__inner">
+    <div class="banner__inner" id="bannerInner">
       <div class="bannerCard" role="img" aria-label="Di Pietro banner">
         <button id="burgerBtn" class="burgerOnBanner" type="button" aria-label="Menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
-
-        <div class="mobileMenu" id="mobileMenu" aria-hidden="true">
-          <div class="mobileMenu__head">
-            <div>
-              <p class="mobileMenu__title">Menu</p>
-              <p class="mobileMenu__meta">Horarios: 9 a 13 / 15 a 18</p>
-            </div>
-            <button class="mobileMenu__close" id="menuCloseBtn" type="button" aria-label="Cerrar">X</button>
-          </div>
-
-          <a href="#catalogo" class="mobileMenu__link" data-close>Productos</a>
-          <a href="#ofertas" class="mobileMenu__link" id="offersLinkMobile" data-close style="display:none">Ofertas</a>
-          <a href="#como" class="mobileMenu__link" data-close>Como comprar</a>
-          <button class="mobileMenu__link mobileMenu__btn" id="openCartBtnMobile" type="button" data-close>
-            Carrito <span id="cartCountMobile" class="badge">0</span>
-          </button>
-        </div>
 
         <div class="bannerContent">
           <div class="bannerStack">
@@ -650,9 +655,32 @@
     </div>
   </section>
 
+  <!-- overlay menu -->
+  <div class="menuOverlay" id="menuOverlay" aria-hidden="true">
+    <button class="menuOverlay__bg" id="menuOverlayBg" type="button" aria-label="Cerrar"></button>
+    <div class="mobileMenu" id="mobileMenu" aria-hidden="true">
+      <div class="mobileMenu__head">
+        <div>
+          <p class="mobileMenu__title">Menu</p>
+          <p class="mobileMenu__meta">Horarios: 9 a 13 / 15 a 18</p>
+        </div>
+        <button class="mobileMenu__close" id="menuCloseBtn" type="button" aria-label="Cerrar">X</button>
+      </div>
+
+      <a href="#quienes" class="mobileMenu__link" data-close>Quienes somos</a>
+      <a href="#catalogo" class="mobileMenu__link" data-close>Productos</a>
+      <a href="#ofertas" class="mobileMenu__link" id="offersLinkMobile" data-close style="display:none">Ofertas</a>
+      <a href="#como" class="mobileMenu__link" data-close>Como comprar</a>
+      <button class="mobileMenu__link mobileMenu__btn" id="openCartBtnMobile" type="button" data-close>
+        Carrito <span id="cartCountMobile" class="badge">0</span>
+      </button>
+    </div>
+  </div>
+
   <header class="topbar">
     <div class="wrap topbar__inner">
       <nav class="nav" id="nav" aria-label="Menu">
+        <a href="#quienes" class="nav__link">Quienes somos</a>
         <a href="#catalogo" class="nav__link">Productos</a>
         <a href="#ofertas" class="nav__link" id="offersLinkDesktop" style="display:none">Ofertas</a>
         <a href="#como" class="nav__link">Como comprar</a>
@@ -662,6 +690,15 @@
       </nav>
     </div>
   </header>
+
+  <main class="wrap">
+    <div class="leadLine">
+      <div>
+        <div class="leadLine__t">Equipamiento comercial para tu negocio, con compra simple.</div>
+        <div class="leadLine__d">Elegis productos, armas el pedido y finalizas por WhatsApp. Pago al recibir.</div>
+      </div>
+    </div>
+  </main>
 
   <main>
     <section id="quienes" class="wrap section section--soft">
@@ -958,6 +995,8 @@ const cartCountEl = document.getElementById("cartCount");
 const cartCountMobileEl = document.getElementById("cartCountMobile");
 
 const burgerBtn = document.getElementById("burgerBtn");
+const menuOverlay = document.getElementById("menuOverlay");
+const menuOverlayBg = document.getElementById("menuOverlayBg");
 const mobileMenu = document.getElementById("mobileMenu");
 const menuCloseBtn = document.getElementById("menuCloseBtn");
 
@@ -1084,23 +1123,27 @@ function closeDrawer(){
   cartDrawer.setAttribute("aria-hidden","true");
 }
 
+/* MENU overlay (sin recorte) */
 function openMobileMenu(){
-  mobileMenu.classList.add("isOpen");
+  menuOverlay.classList.add("isOpen");
+  menuOverlay.setAttribute("aria-hidden","false");
   mobileMenu.setAttribute("aria-hidden","false");
   burgerBtn.setAttribute("aria-expanded","true");
   burgerBtn.classList.add("isOpen");
 }
 function closeMobileMenu(){
-  mobileMenu.classList.remove("isOpen");
+  menuOverlay.classList.remove("isOpen");
+  menuOverlay.setAttribute("aria-hidden","true");
   mobileMenu.setAttribute("aria-hidden","true");
   burgerBtn.setAttribute("aria-expanded","false");
   burgerBtn.classList.remove("isOpen");
 }
 burgerBtn.addEventListener("click", ()=>{
-  if(mobileMenu.classList.contains("isOpen")) closeMobileMenu();
+  if(menuOverlay.classList.contains("isOpen")) closeMobileMenu();
   else openMobileMenu();
 });
 menuCloseBtn.addEventListener("click", closeMobileMenu);
+menuOverlayBg.addEventListener("click", closeMobileMenu);
 mobileMenu.querySelectorAll("[data-close]").forEach((el)=>el.addEventListener("click", closeMobileMenu));
 
 [openCartBtn, openCartBtnMobile, openCartBtnHero].forEach((btn)=>{

@@ -8,7 +8,6 @@
   <meta name="description" content="Panel admin: productos + imagenes." />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* /admin/styles.css */
 :root{
   --bg: #fbf7f0;
   --text: #1f2937;
@@ -83,6 +82,7 @@ body{
 }
 .btn--ghost{background: rgba(255,255,255,.72)}
 .btn--danger{background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.18); color: #7f1d1d}
+.btn--mini{padding:8px 10px; border-radius: 12px; font-size:12px}
 .msg{margin-top:10px; color: var(--muted); font-size:13px; line-height:1.35; min-height:18px}
 .preview{
   width:100%;
@@ -116,9 +116,44 @@ body{
   font-size:12px;
   font-weight:1100;
 }
+.pill--promo{
+  border-color: rgba(249,115,22,.22);
+  background: rgba(249,115,22,.12);
+  color: #7c2d12;
+}
+.chk{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  border-radius: 14px;
+  border:1px solid rgba(31,41,55,.10);
+  background: rgba(255,255,255,.70);
+  font-weight:1100;
+  font-size:12px;
+}
+.chk input{margin:0}
 .footer{border-top:1px solid rgba(31,41,55,.10); background: rgba(255,255,255,.45)}
 .footer__inner{padding: 18px 0; color: var(--muted)}
 @media (max-width: 900px){ .grid2{grid-template-columns: 1fr} }
+
+/* Modal promo */
+.modal{position:fixed; inset:0; display:none; z-index:90}
+.modal.isOpen{display:block}
+.modal__backdrop{position:absolute; inset:0; border:0; background: rgba(17,24,39,.55); cursor:pointer}
+.modal__panel{
+  position:relative;
+  width: min(720px, 92vw);
+  margin: 8vh auto;
+  border-radius: 22px;
+  border:1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 60px rgba(31,41,55,.30);
+  overflow:hidden;
+}
+.modal__header{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid rgba(31,41,55,.08)}
+.modal__title{font-weight:1100}
+.modal__body{padding:14px}
+.modal__actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
 </style>
 </head>
 <body>
@@ -172,6 +207,7 @@ body{
             <div class="preview">
               <img id="previewImg" alt="Preview" />
             </div>
+            <small class="muted" id="uploadPathHint"></small>
           </div>
         </div>
 
@@ -205,6 +241,31 @@ body{
           <textarea id="descInput" rows="4" placeholder="Descripcion"></textarea>
         </div>
 
+        <div class="grid2" style="margin-top:10px">
+          <div class="field">
+            <label>Promocion</label>
+            <label class="chk" style="margin:0">
+              <input id="promoActive" type="checkbox" />
+              Tiene promocion
+            </label>
+            <div class="muted" style="margin-top:6px">Una sola promocion por producto.</div>
+          </div>
+
+          <div class="field">
+            <label>Precio promocion (ARS)</label>
+            <input id="promoPrice" type="number" step="0.01" placeholder="15000" />
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+              <button id="promoQuickBtn" class="btn btn--ghost btn--mini" type="button">Agregar promocion</button>
+              <button id="promoClearBtn" class="btn btn--ghost btn--mini" type="button">Quitar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:10px">
+          <label>Etiqueta promocion (opcional)</label>
+          <input id="promoLabel" type="text" placeholder="Promocion" />
+        </div>
+
         <button id="publishBtn" class="btn btn--primary" type="button">Publicar</button>
         <div id="adminMsg" class="msg"></div>
       </section>
@@ -219,20 +280,54 @@ body{
     </section>
   </main>
 
+  <!-- Modal editar promo -->
+  <div id="promoModal" class="modal" aria-hidden="true">
+    <button id="promoBackdrop" class="modal__backdrop" type="button" aria-label="Cerrar"></button>
+    <div class="modal__panel" role="dialog" aria-modal="true">
+      <div class="modal__header">
+        <div class="modal__title" id="promoModalTitle">Promocion</div>
+        <button id="promoClose" class="btn btn--ghost btn--mini" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <div class="modal__body">
+        <div class="field">
+          <label>Activo</label>
+          <label class="chk" style="margin:0">
+            <input id="promoEditActive" type="checkbox" />
+            Tiene promocion
+          </label>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Etiqueta</label>
+            <input id="promoEditLabel" type="text" placeholder="Promocion" />
+          </div>
+          <div class="field">
+            <label>Precio (ARS)</label>
+            <input id="promoEditPrice" type="number" step="0.01" placeholder="15000" />
+          </div>
+        </div>
+        <div class="modal__actions">
+          <button id="promoSave" class="btn btn--primary" type="button">Guardar</button>
+          <button id="promoDisable" class="btn btn--ghost" type="button">Desactivar</button>
+        </div>
+        <div id="promoModalMsg" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="wrap footer__inner">
       <small>Admin autoadministrable | Supabase Auth + RLS + Storage</small>
     </div>
   </footer>
+
 <script>
-// /admin/app.js
 const SUPABASE_URL = "https://etqcufdmduqbmilpyyfg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0cWN1ZmRtZHVxYm1pbHB5eWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NTQ1NzIsImV4cCI6MjA4NzEzMDU3Mn0.fHrf3E9HmEjOyzh8n7eusvy_SOkQf4zshDpxRzKGx10";
 
 const BUCKET_NAME = "product-images";
 const UPLOAD_PREFIX = "products/";
 
-// IMPORTANT: avoid clashing with global "supabase" from CDN by naming the client "sb"
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const authBox = document.getElementById("authBox");
@@ -247,6 +342,7 @@ const userEmail = document.getElementById("userEmail");
 
 const imageInput = document.getElementById("imageInput");
 const previewImg = document.getElementById("previewImg");
+const uploadPathHint = document.getElementById("uploadPathHint");
 
 const nameInput = document.getElementById("nameInput");
 const priceInput = document.getElementById("priceInput");
@@ -254,16 +350,35 @@ const categoryInput = document.getElementById("categoryInput");
 const activeSelect = document.getElementById("activeSelect");
 const descInput = document.getElementById("descInput");
 
+const promoActive = document.getElementById("promoActive");
+const promoPrice = document.getElementById("promoPrice");
+const promoLabel = document.getElementById("promoLabel");
+const promoQuickBtn = document.getElementById("promoQuickBtn");
+const promoClearBtn = document.getElementById("promoClearBtn");
+
 const publishBtn = document.getElementById("publishBtn");
 const adminMsg = document.getElementById("adminMsg");
 const listEl = document.getElementById("list");
 const refreshBtn = document.getElementById("refreshBtn");
 
+const promoModal = document.getElementById("promoModal");
+const promoBackdrop = document.getElementById("promoBackdrop");
+const promoClose = document.getElementById("promoClose");
+const promoModalTitle = document.getElementById("promoModalTitle");
+const promoEditActive = document.getElementById("promoEditActive");
+const promoEditLabel = document.getElementById("promoEditLabel");
+const promoEditPrice = document.getElementById("promoEditPrice");
+const promoSave = document.getElementById("promoSave");
+const promoDisable = document.getElementById("promoDisable");
+const promoModalMsg = document.getElementById("promoModalMsg");
+
 let uploadedImageUrl = "";
 let uploadedImagePath = "";
+let promoEditingId = null;
 
 function setAuthMsg(msg){ authMsg.textContent = msg || ""; }
 function setAdminMsg(msg){ adminMsg.textContent = msg || ""; }
+function setPromoModalMsg(msg){ promoModalMsg.textContent = msg || ""; }
 
 function escapeHtml(s){
   return String(s ?? "")
@@ -277,6 +392,17 @@ function money(n){
   try{ return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS"}).format(Number(n||0)); }
   catch{ return "$" + Number(n||0).toFixed(2); }
 }
+
+promoQuickBtn.addEventListener("click", ()=>{
+  promoActive.checked = true;
+  if(!(promoLabel.value||"").trim()) promoLabel.value = "Promocion";
+  promoPrice.focus();
+});
+promoClearBtn.addEventListener("click", ()=>{
+  promoActive.checked = false;
+  promoLabel.value = "";
+  promoPrice.value = "";
+});
 
 async function whitelistCheck(){
   const { data } = await sb.auth.getUser();
@@ -360,8 +486,12 @@ refreshBtn.addEventListener("click", loadProductsList);
 function resetFormState(){
   uploadedImageUrl = "";
   uploadedImagePath = "";
+  uploadPathHint.textContent = "";
   previewImg.removeAttribute("src");
   imageInput.value = "";
+  promoActive.checked = false;
+  promoPrice.value = "";
+  promoLabel.value = "";
 }
 
 async function uploadSelectedImage(file){
@@ -389,6 +519,7 @@ async function uploadSelectedImage(file){
     return false;
   }
 
+  uploadPathHint.textContent = `Ruta: ${uploadedImagePath}`;
   setAdminMsg("Imagen subida OK. Ahora completa los datos y publica.");
   return true;
 }
@@ -425,6 +556,11 @@ publishBtn.addEventListener("click", async ()=>{
   const priceRaw = (priceInput.value||"").trim();
   const price = Number(priceRaw);
 
+  const promoOn = !!promoActive.checked;
+  const promoLabelVal = (promoLabel.value||"").trim() || "Promocion";
+  const promoPriceRaw = (promoPrice.value||"").trim();
+  const promoPriceVal = promoOn ? Number(promoPriceRaw) : null;
+
   if(!uploadedImageUrl){
     setAdminMsg("Primero subi la imagen (upload inmediato).");
     return;
@@ -437,12 +573,29 @@ publishBtn.addEventListener("click", async ()=>{
     setAdminMsg("Precio invalido (ej 339.90).");
     return;
   }
+  if(promoOn){
+    if(!promoPriceRaw || Number.isNaN(promoPriceVal) || promoPriceVal <= 0){
+      setAdminMsg("Promocion activa: el precio de promocion debe ser mayor a 0.");
+      return;
+    }
+  }
 
   setAdminMsg("Publicando producto...");
 
-  const { error } = await sb
-    .from("products")
-    .insert([{ name, description, price, category, image_url: uploadedImageUrl, active }]);
+  const payload = {
+    name,
+    description,
+    price,
+    category,
+    image_url: uploadedImageUrl,
+    active,
+    promo_active: promoOn,
+    promo_label: promoOn ? promoLabelVal : null,
+    promo_price: promoOn ? promoPriceVal : null,
+    image_path: uploadedImagePath || null
+  };
+
+  const { error } = await sb.from("products").insert([payload]);
 
   if(error){
     console.error(error);
@@ -461,12 +614,90 @@ publishBtn.addEventListener("click", async ()=>{
   await loadProductsList();
 });
 
+function openPromoModal(p){
+  promoEditingId = p.id;
+  promoModalTitle.textContent = `Promocion: ${p.name}`;
+  promoEditActive.checked = !!p.promo_active;
+  promoEditLabel.value = (p.promo_label || "Promocion");
+  promoEditPrice.value = (p.promo_price != null) ? String(p.promo_price) : "";
+  setPromoModalMsg("");
+  promoModal.classList.add("isOpen");
+  promoModal.setAttribute("aria-hidden","false");
+}
+function closePromoModal(){
+  promoModal.classList.remove("isOpen");
+  promoModal.setAttribute("aria-hidden","true");
+  promoEditingId = null;
+}
+promoBackdrop.addEventListener("click", closePromoModal);
+promoClose.addEventListener("click", closePromoModal);
+
+promoSave.addEventListener("click", async ()=>{
+  setPromoModalMsg("");
+  if(!promoEditingId) return;
+
+  const on = !!promoEditActive.checked;
+  const label = (promoEditLabel.value||"").trim() || "Promocion";
+  const priceRaw = (promoEditPrice.value||"").trim();
+  const price = on ? Number(priceRaw) : null;
+
+  if(on){
+    if(!priceRaw || Number.isNaN(price) || price <= 0){
+      setPromoModalMsg("Promocion activa: el precio debe ser mayor a 0.");
+      return;
+    }
+  }
+
+  promoSave.disabled = true;
+  promoDisable.disabled = true;
+
+  const payload = {
+    promo_active: on,
+    promo_label: on ? label : null,
+    promo_price: on ? price : null
+  };
+
+  const { error } = await sb.from("products").update(payload).eq("id", promoEditingId);
+
+  if(error){
+    console.error(error);
+    setPromoModalMsg(`No se pudo guardar: ${error.message}`);
+  }else{
+    setPromoModalMsg("Guardado OK.");
+    await loadProductsList();
+  }
+
+  promoSave.disabled = false;
+  promoDisable.disabled = false;
+});
+
+promoDisable.addEventListener("click", async ()=>{
+  setPromoModalMsg("");
+  if(!promoEditingId) return;
+
+  promoSave.disabled = true;
+  promoDisable.disabled = true;
+
+  const { error } = await sb.from("products").update({ promo_active:false, promo_label:null, promo_price:null }).eq("id", promoEditingId);
+
+  if(error){
+    console.error(error);
+    setPromoModalMsg(`No se pudo desactivar: ${error.message}`);
+  }else{
+    setPromoModalMsg("Desactivado OK.");
+    await loadProductsList();
+  }
+
+  promoSave.disabled = false;
+  promoDisable.disabled = false;
+});
+
 async function loadProductsList(){
   setAdminMsg("");
 
   const { data, error } = await sb
     .from("products")
-    .select("id,name,price,category,active,created_at")
+    .select("id,name,price,category,active,created_at,image_url,promo_active,promo_label,promo_price")
     .order("created_at", { ascending:false })
     .limit(300);
 
@@ -483,6 +714,7 @@ async function loadProductsList(){
   }
 
   listEl.innerHTML = items.map((p)=>{
+    const promoPill = (p.promo_active && Number(p.promo_price||0)>0) ? `<span class="pill pill--promo">PROMO +${escapeHtml(money(p.promo_price))}</span>` : "";
     return `
       <div class="item">
         <div>
@@ -491,26 +723,33 @@ async function loadProductsList(){
           <div class="item__meta">${new Date(p.created_at).toLocaleString("es-AR")} | ${p.active ? "Activo" : "Inactivo"}</div>
         </div>
         <div class="item__actions">
+          ${promoPill}
           <span class="pill">${p.active ? "ON" : "OFF"}</span>
-          <button class="btn btn--ghost" data-toggle="${p.id}" type="button">${p.active ? "Desactivar" : "Activar"}</button>
-          <button class="btn btn--danger" data-del="${p.id}" type="button">Borrar</button>
+          <button class="btn btn--ghost" data-promo="${escapeHtml(p.id)}" type="button">Promocion</button>
+          <button class="btn btn--ghost" data-toggle="${escapeHtml(p.id)}" type="button">${p.active ? "Desactivar" : "Activar"}</button>
+          <button class="btn btn--danger" data-del="${escapeHtml(p.id)}" type="button">Borrar</button>
         </div>
       </div>
     `;
   }).join("");
 
+  listEl.querySelectorAll("[data-promo]").forEach((btn)=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-promo");
+      const p = items.find(x=>String(x.id)===String(id));
+      if(p) openPromoModal(p);
+    });
+  });
+
   listEl.querySelectorAll("[data-toggle]").forEach((btn)=>{
     btn.addEventListener("click", async ()=>{
       const id = btn.getAttribute("data-toggle");
-      const current = items.find(x=>x.id===id);
+      const current = items.find(x=>String(x.id)===String(id));
       if(!current) return;
 
       btn.disabled = true;
 
-      const { error: upErr } = await sb
-        .from("products")
-        .update({ active: !current.active })
-        .eq("id", id);
+      const { error: upErr } = await sb.from("products").update({ active: !current.active }).eq("id", id);
 
       if(upErr){
         console.error(upErr);
@@ -530,10 +769,7 @@ async function loadProductsList(){
 
       btn.disabled = true;
 
-      const { error: delErr } = await sb
-        .from("products")
-        .delete()
-        .eq("id", id);
+      const { error: delErr } = await sb.from("products").delete().eq("id", id);
 
       if(delErr){
         console.error(delErr);

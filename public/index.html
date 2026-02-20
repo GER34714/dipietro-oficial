@@ -84,6 +84,7 @@
     background: linear-gradient(180deg, rgba(17,24,39,.42), rgba(17,24,39,.18) 52%, rgba(17,24,39,.28));
     pointer-events:none;
   }
+
   .bannerContent{
     position:relative;
     z-index:2;
@@ -103,6 +104,7 @@
     max-width: 92%;
   }
 
+  /* Logo circular sin perder resolución */
   .logoRound{
     width:92px;
     height:92px;
@@ -136,6 +138,28 @@
     text-shadow: 0 10px 24px rgba(0,0,0,.28);
   }
 
+  /* Burger arriba a la derecha sobre el banner */
+  .burgerOnBanner{
+    position:absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    width:44px; height:44px;
+    border-radius:14px; border:1px solid rgba(255,255,255,.28);
+    background: rgba(255,255,255,.78);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 18px 60px rgba(31,41,55,.22);
+    cursor:pointer; padding:10px;
+    display:none; /* se prende en mobile */
+  }
+  .burgerOnBanner span{
+    display:block;
+    height:2px;
+    background: rgba(31,41,55,.80);
+    border-radius:99px;
+    margin:6px 0;
+  }
+
   /* Topbar (sin repetir marca) */
   .topbar{
     position:sticky; top:0; z-index:50;
@@ -143,8 +167,8 @@
     background: rgba(251,247,240,.75);
     border-bottom: 1px solid var(--line);
   }
-  .topbar__inner{display:flex; align-items:center; justify-content:space-between; padding:14px 0; gap:12px}
-  .topbar .brand{display:none} /* <- clave: no repetir el texto del banner */
+  .topbar__inner{display:flex; align-items:center; justify-content:flex-end; padding:14px 0; gap:12px}
+  .topbar .brand{display:none}
 
   .nav{display:flex; align-items:center; gap:12px}
   .nav__link{
@@ -171,14 +195,6 @@
     font-size:12px;
   }
 
-  .burger{
-    display:none; width:44px; height:44px;
-    border-radius:14px; border:1px solid var(--line);
-    background: rgba(255,255,255,.72);
-    box-shadow: var(--shadow);
-    cursor:pointer; padding:10px;
-  }
-  .burger span{display:block; height:2px; background: rgba(31,41,55,.80); border-radius:99px; margin:6px 0}
   .mobileMenu{display:none; border-top:1px solid var(--line); background: rgba(255,255,255,.80)}
   .mobileMenu.isOpen{display:block}
   .mobileMenu__link{
@@ -492,7 +508,7 @@
   }
   @media (max-width: 760px){
     .nav{display:none}
-    .burger{display:inline-block}
+    .burgerOnBanner{display:block}
     .grid{grid-template-columns: repeat(2, minmax(0, 1fr))}
     .card__name{font-size:13px}
     .card__desc{-webkit-line-clamp: 1}
@@ -512,6 +528,11 @@
   <section class="banner" aria-label="Banner">
     <div class="banner__inner">
       <div class="bannerCard" role="img" aria-label="Di Pietro banner">
+        <!-- Burger arriba derecha sobre el banner -->
+        <button id="burgerBtn" class="burgerOnBanner" type="button" aria-label="Menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+
         <div class="bannerContent">
           <div class="bannerStack">
             <div class="logoRound" aria-label="Logo">
@@ -527,11 +548,6 @@
 
   <header class="topbar">
     <div class="wrap topbar__inner">
-      <div class="brand" aria-hidden="true">
-        <div class="brand__title" id="brandTitle"></div>
-        <div class="brand__subtitle" id="brandSubtitle"></div>
-      </div>
-
       <nav class="nav" id="nav" aria-label="Menu">
         <a href="#catalogo" class="nav__link">Productos</a>
         <a href="#ofertas" class="nav__link">Ofertas</a>
@@ -540,10 +556,6 @@
           Carrito <span id="cartCount" class="badge">0</span>
         </button>
       </nav>
-
-      <button id="burgerBtn" class="burger" type="button" aria-label="Menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
     </div>
 
     <div class="mobileMenu" id="mobileMenu" aria-hidden="true">
